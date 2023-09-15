@@ -104,10 +104,8 @@ class ViewDeleteUpdateUSERSbyID(Resource):
         if user is None:
             return {"message": "User not found"}, HTTPStatus.NOT_FOUND
 
-        # Parse the request data
         data = request.json
 
-        # Update user information
         user.first_name = data.get('first_name', user.first_name)
         user.last_name = data.get('last_name', user.last_name)
         user.email = data.get('email', user.email)
@@ -122,7 +120,7 @@ class ViewDeleteUpdateUSERSbyID(Resource):
     
     
     
-    
+## This is to sign up a user. User with the email "Veektaw@gmail.com, is the admin. change it above to give others access as admin"
 @user_namespace.route('/signup')
 class SignUp(Resource):
    @user_namespace.expect(user_expect_serializer)
