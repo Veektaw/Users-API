@@ -5,11 +5,13 @@ from flask_admin import Admin
 from functools import wraps
 from flask_restx import Api
 from .Users.views import user_namespace
+from .auth.views import auth_namespace
 from .config.config import config_dict
 from .utils import db, jwt
 from flask_caching.backends import RedisCache
 from redis import Redis
 from .models.Users import User
+from .models.tokenblocklist import TokenBlocklist
 from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt, create_access_token
 from werkzeug.exceptions import NotFound, NotAcceptable, MethodNotAllowed
@@ -42,14 +44,16 @@ def create_app(config=config_dict['dev']):
         }
     }
 
-    api = Api(app, title='Scissor',
-              description='A URL shortening API',
+    api = Api(app, title='User management',
+              description='A user management API',
               version = 1.0,
+              Host = 'https://e673-102-89-23-19.ngrok-free.app',
               authorizations=authorizations,
-              security='Bearer Auth')
+              security=['Bearer Auth'])
 
     
     api.add_namespace(user_namespace, path='/user')
+    api.add_namespace(auth_namespace, path='/auth')
 
     @api.errorhandler(NotFound)
     def not_found(error):
@@ -64,6 +68,7 @@ def create_app(config=config_dict['dev']):
         return {
             'db': db,
             'user': User,
+            'tokenblocklist': TokenBlocklist
         }
     
     return app

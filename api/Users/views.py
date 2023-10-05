@@ -11,6 +11,10 @@ from api.models.Users import User
 
 ## When testing on postman or insomnia, copy and paste the access token in the bearer path.
 
+## When accessing the api from the browser, copy and paste the access token in the Authorization header.
+
+
+
 
 @user_namespace.route('/users')
 class GetUsers(Resource):
@@ -24,6 +28,10 @@ class GetUsers(Resource):
     
     
     def get(self):
+        
+        """
+        This gets all the users in the database.
+        """
 
         try:
             users = User.query.all()
@@ -58,12 +66,12 @@ class ViewDeleteUpdateUSERSbyID(Resource):
         if not authenticated_user:
             return {"message": "Access denied"}
 
-        url = User.get_by_id(id)
+        user = User.get_by_id(id)
 
-        if url is None:
+        if user is None:
             return {"message": "User not found"}, HTTPStatus.NOT_FOUND
 
-        return url, HTTPStatus.OK
+        return user, HTTPStatus.OK
     
 
     @user_namespace.doc(description="Delete a User by ID", params={"id": "ID of the user"})
@@ -71,7 +79,7 @@ class ViewDeleteUpdateUSERSbyID(Resource):
     
     def delete(self, id):
         """
-        This deletes a user.
+        This deletes a user by ID.
         """
         authenticated_user_email = get_jwt_identity()
         authenticated_user = User.query.filter_by(email=authenticated_user_email).first()
@@ -93,6 +101,10 @@ class ViewDeleteUpdateUSERSbyID(Resource):
     @jwt_required()
  
     def put(self, id):
+        
+        """
+        This updates a user by ID.
+        """
         authenticated_user_email = get_jwt_identity()
         authenticated_user = User.query.filter_by(email=authenticated_user_email).first()
 
@@ -113,106 +125,3 @@ class ViewDeleteUpdateUSERSbyID(Resource):
         user.save()
 
         return {"message": "User updated successfully"}, HTTPStatus.OK
-    
-    
-    
-    
-    
-    
-    
-## This is to sign up a user. User with the email "Veektaw@gmail.com, is the admin. change it above to give others access as admin"
-@user_namespace.route('/signup')
-class SignUp(Resource):
-   @user_namespace.expect(user_expect_serializer)
-   @user_namespace.marshal_list_with(user_marshall_serializer)
-   @user_namespace.doc(description="Signup user")
-   
-   def post(self):
-      
-      data = request.get_json()
-         
-      new_user  = User (
-         first_name = data.get('first_name'),
-         last_name = data.get('last_name'),
-         email = data.get('email'), 
-         password = generate_password_hash(data.get('password'))
-      )
-      
-      signup_attempt = User.query.filter_by(email=new_user.email).first()
-      
-      if signup_attempt:
-         response = {"message" : "Email exists"}
-         return response, HTTPStatus.NOT_ACCEPTABLE
-         
-         
-      try:
-         new_user.save()
-            
-      except:
-         db.session.rollback()
-         response = {"message" : "An error occurred"}
-         
-             
-         return response, HTTPStatus.INTERNAL_SERVER_ERROR
-         
-      access_token = create_access_token(identity=new_user.email)
-      refresh_token = create_refresh_token(identity=new_user.email)
-      
-      tokens = {
-         'access_token' : access_token,
-         'refresh_token' : refresh_token
-         }
-         
-      response = {
-         'id': new_user.id,
-         'first_name': new_user.first_name,
-         'last_name': new_user.last_name,
-         'email': new_user.email,
-         'password': new_user.password,
-         'tokens': tokens
-      }
-      
-      return response , HTTPStatus.CREATED 
-  
-  
-@user_namespace.route('/login')
-class Login(Resource):
-   @user_namespace.expect(user_login_serializer)
-   @user_namespace.doc(description = "Login user",
-                       params = {"user input": "Email and password"})
-   def post(self):
-      
-      
-      data = request.get_json()
-
-      email = data.get("email")
-      password = data.get("password")
-
-      user = User.query.filter_by(email=email).first()
-
-      if (user is not None) and check_password_hash(user.password, password):
-         access_token = create_access_token(identity=user.email)
-         refresh_token = create_refresh_token(identity=user.email)
-
-         response = {
-            'access_token': access_token,
-            'refresh_token': refresh_token
-         }
-
-         return response, HTTPStatus.CREATED
-      
-      else:
-         response = {"message": "Invalid credentials"} 
-         return response , HTTPStatus.NOT_FOUND
-     
-@user_namespace.route('/refresh')
-class Refresh(Resource):
-
-   @user_namespace.doc(description = "Refresh access token of user login")
-   @jwt_required(refresh=True)
-   def post(self):
-      email = get_jwt_identity()
-
-      access_token = create_access_token(identity=email)
-
-      return {"access_token": access_token}, HTTPStatus.OK
